@@ -5,7 +5,6 @@ const User = require('../models/User');
 // Controller function to handle user search
 const searchUsers = async (req, res) => {
   const searchTerm = req.query.q; // Get the search term from the query parameter
-  console.log(searchTerm);
 
   try {
     const users = await User.find({

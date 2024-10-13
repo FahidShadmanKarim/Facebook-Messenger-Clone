@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState ,useCallback } from 'react';
 import { useAuth } from '../utils/AuthContext';
 import { Search, Settings, Edit, LogOut } from 'lucide-react';
 import axios from 'axios';
@@ -12,21 +12,20 @@ const Sidebar = ({ setSelectedConversation }) => {
   const [searchTerm, setSearchTerm] = useState('');        // State for search term
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const response = await axios.get(`${baseUrl}/conversation/user/${userId}`);
-        setConversations(response.data.data);
-        console.log(response.data);
-      } catch (error) {
-        console.error('Error fetching conversations:', error);
-      }
-    };
+  const fetchConversations = useCallback(async () => {
+    try {
+      const response = await axios.get(`${baseUrl}/conversation/user/${userId}`);
+      setConversations(response.data.data);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    }
+  }, [userId, baseUrl]);
 
+  useEffect(() => {
     if (userId) {
       fetchConversations();
     }
-  }, [userId, baseUrl]);
+  }, [userId, fetchConversations]);
 
   const handleLogout = () => {
     logout();
@@ -34,11 +33,11 @@ const Sidebar = ({ setSelectedConversation }) => {
   };
 
   // Helper function to get initials if no avatar URL is available
-  const getInitials = (name) => {
-    const initials = name.split(' ').map((word) => word[0]).join('');
-    return initials.toUpperCase();
+  const getInitials = (username) => {
+    if (!username) return '';
+    return username.split(' ').map((word) => word[0]).join('');
   };
-
+  
   // Handle search input change
   const handleSearch = async (e) => {
     const value = e.target.value;
@@ -56,6 +55,41 @@ const Sidebar = ({ setSelectedConversation }) => {
     }
   };
 
+  // Function to handle selecting a user from search results
+  const handleUserClick = async (userIdToChatWith) => {
+    try {
+      // Check if there is already a conversation with the selected user
+      let conversation = conversations.find(conv =>
+        conv.participants.some(participant => participant._id === userIdToChatWith)
+      );
+  
+      if (!conversation) {
+        // If no existing conversation, create a new one
+        const response = await axios.post(`${baseUrl}/conversation/create`, {
+          participantIds: [userId, userIdToChatWith]
+        });
+  
+        conversation = response.data.data;
+        // Add the new conversation to the list
+        setConversations(prevConversations => [...prevConversations, conversation]);
+      }
+  
+      // Set the conversation as selected
+      setSelectedConversation(conversation._id);
+      
+      // Clear the search results and term
+      setSearchResults([]);
+      setSearchTerm('');
+  
+      // Optionally, you can re-fetch all conversations to ensure the list is up-to-date
+      fetchConversations();
+  
+    } catch (error) {
+      console.error('Error handling user click:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+  
   return (
     <div className="w-80 h-screen bg-gray-100 flex flex-col border-r border-gray-300">
       {/* Header */}
@@ -81,10 +115,9 @@ const Sidebar = ({ setSelectedConversation }) => {
           <input
             type="text"
             value={searchTerm}
-            onChange={handleSearch}
+            onChange={handleSearch}  // Search handler that updates searchTerm and searchResults
             placeholder="Search Messenger"
-            className="w-full py-2 pl-10 pr-4 rounded-full bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+            className="w-full py-2 pl-10 pr-4 rounded-full bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
           <Search size={20} className="absolute left-3 top-2 text-gray-500" />
         </div>
       </div>
@@ -96,7 +129,7 @@ const Sidebar = ({ setSelectedConversation }) => {
             <li
               key={user._id}
               className="px-4 py-3 flex items-center space-x-3 hover:bg-gray-200 cursor-pointer"
-              onClick={() => setSelectedConversation(user._id)}
+              onClick={() => handleUserClick(user._id)}  // Use a handler function to manage conversation
             >
               {/* Avatar */}
               <div className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden bg-gray-300 flex items-center justify-center text-white font-bold">
@@ -114,9 +147,7 @@ const Sidebar = ({ setSelectedConversation }) => {
               </div>
 
               <div className="flex-1">
-                <p className="font-semibold text-gray-800">
-                  {user.username}
-                </p>
+                <p className="font-semibold text-gray-800">{user.username}</p>
                 <p className="text-sm text-gray-500">{user.email}</p>
               </div>
             </li>
@@ -124,46 +155,46 @@ const Sidebar = ({ setSelectedConversation }) => {
         </ul>
       ) : (
         <ul className="flex-1 overflow-y-auto">
-          {conversations.length > 0 ? (
-            conversations.map((conversation) => (
-              <li
-                key={conversation._id}
-                className="px-4 py-3 flex items-center space-x-3 hover:bg-gray-200 cursor-pointer"
-                onClick={() => setSelectedConversation(conversation._id)}
-              >
-                {/* Avatar */}
-                <div className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden bg-gray-300 flex items-center justify-center text-white font-bold">
-                  {conversation.participants
-                    .filter((participant) => participant._id !== userId)
-                    .map((participant) => (
-                      participant.avatarUrl ? (
-                        <img
-                          key={participant._id}
-                          src={participant.avatarUrl}
-                          alt={`${participant.username}'s avatar`}
-                          className="w-full h-full object-cover rounded-full"
-                        />
-                      ) : (
-                        <span key={participant._id} className="text-xl">
-                          {getInitials(participant.username)}
-                        </span>
-                      )
-                    ))}
-                </div>
+     {conversations.length > 0 ? (
+  conversations.map((conversation) => (
+    <li
+      key={conversation._id}
+      className="px-4 py-3 flex items-center space-x-3 hover:bg-gray-200 cursor-pointer"
+      onClick={() => setSelectedConversation(conversation._id)}
+    >
+      {/* Avatar */}
+      <div className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden bg-gray-300 flex items-center justify-center text-white font-bold">
+        {conversation.participants
+          ?.filter((participant) => participant?._id !== userId)  // Use optional chaining here
+          .map((participant) => (
+            participant?.avatarUrl ? (
+              <img
+                key={participant._id}
+                src={participant.avatarUrl}
+                alt={`${participant.username}'s avatar`}
+                className="w-full h-full object-cover rounded-full"
+              />
+            ) : (
+              <span key={participant._id} className="text-xl">
+                {getInitials(participant?.username)}
+              </span>
+            )
+          ))}
+      </div>
 
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-800">
-                    {conversation.participants
-                      .filter((participant) => participant._id !== userId)
-                      .map((participant) => participant.username)
-                      .join(', ')}
-                  </p>
-                </div>
-              </li>
-            ))
-          ) : (
-            <p className="p-4 text-gray-500">No conversations found.</p>
-          )}
+      <div className="flex-1">
+        <p className="font-semibold text-gray-800">
+          {conversation.participants
+            ?.filter((participant) => participant?._id !== userId)  // Use optional chaining here
+            .map((participant) => participant?.username)  // Ensure safe access
+            .join(', ')}
+        </p>
+      </div>
+    </li>
+  ))
+) : (
+  <p className="p-4 text-gray-500">No conversations found.</p>
+)}
         </ul>
       )}
     </div>

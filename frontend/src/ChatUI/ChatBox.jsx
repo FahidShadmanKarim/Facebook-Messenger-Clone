@@ -5,7 +5,6 @@ import axios from 'axios';
 import { Send, PhoneCall, Video, Info } from 'lucide-react';
 
 const ChatBox = ({ selectedConversationId }) => {
-
   const baseUrl = import.meta.env.VITE_BASE_URL;
   const { userId, userName } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -13,7 +12,6 @@ const ChatBox = ({ selectedConversationId }) => {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  console.log(selectedConversationId);
 
   // Fetch messages
   const fetchMessages = async () => {
@@ -91,9 +89,9 @@ const ChatBox = ({ selectedConversationId }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex-1 flex flex-col bg-gray-100">
       {/* Chat header */}
-      <div className="flex justify-between items-center p-4 border-b border-gray-200">
+      <div className="flex justify-between items-center p-4 bg-white border-b border-gray-200">
         <h2 className="text-xl font-semibold">Chat</h2>
         <div className="flex space-x-4">
           <PhoneCall className="text-blue-500 cursor-pointer" />
@@ -104,17 +102,17 @@ const ChatBox = ({ selectedConversationId }) => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.length > 0 ? (
+        {messages.length > 0 ? (
           messages.map((message, index) => (
             <div
               key={message._id || index}
-              className={`flex ${message.sender._id === userId ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-2xl px-4 py-2 ${
-                  message.sender._id === userId
+                className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-lg px-4 py-2 ${
+                  message.senderId === userId
                     ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-black'
+                    : 'bg-white text-gray-800'
                 }`}
               >
                 <p className="text-sm">{message.content}</p>
@@ -128,11 +126,11 @@ const ChatBox = ({ selectedConversationId }) => {
       </div>
 
       {/* Message input */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex items-center bg-gray-100 rounded-full">
           <textarea
             className="flex-1 bg-transparent p-3 focus:outline-none resize-none"
-            placeholder="Aa"
+            placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
