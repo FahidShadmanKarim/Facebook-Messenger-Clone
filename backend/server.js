@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
+const userRoutes = require('./routes/userRoutes');
 const socketHandler = require('./socketHandler');
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/message', messageRoutes);
 app.use('/conversation', conversationRoutes);
+app.use('/users',userRoutes);
 
 socketHandler(server);
 
