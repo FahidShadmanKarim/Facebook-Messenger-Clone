@@ -12,14 +12,12 @@ const ChatBox = ({ selectedConversationId }) => {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-
   // Fetch messages
   const fetchMessages = async () => {
     if (!selectedConversationId) return;
 
     try {
       const response = await axios.get(`${baseUrl}/message/message/${selectedConversationId}`);
-      console.log(response.data.data);
       setMessages(response.data.data);
     } catch (error) {
       console.error('Error fetching messages:', error.response ? error.response.data : error.message);
@@ -72,8 +70,12 @@ const ChatBox = ({ selectedConversationId }) => {
     const messageData = {
       content: newMessage,
       conversationId: selectedConversationId,
-      senderId: userId,
-      senderUsername: userName,
+      sender: {
+        _id: userId,
+        username: userName
+      },
+      seen: false,
+      timestamp: new Date().toISOString()
     };
 
     socketRef.current.emit('sendMessage', messageData);
@@ -103,19 +105,22 @@ const ChatBox = ({ selectedConversationId }) => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length > 0 ? (
-          messages.map((message, index) => (
+          messages.map((message) => (
             <div
-              key={message._id || index}
-              className={`flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}
+              key={message._id}
+              className={`flex ${message.sender._id === userId ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-lg px-4 py-2 ${
-                  message.senderId === userId
+                  message.sender._id === userId
                     ? 'bg-blue-500 text-white'
                     : 'bg-white text-gray-800'
                 }`}
               >
                 <p className="text-sm">{message.content}</p>
+                <p className="text-xs mt-1 opacity-70">
+                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
               </div>
             </div>
           ))
